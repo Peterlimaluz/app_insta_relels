@@ -22,14 +22,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pandas requests
-
-      - name: Executar Runner de Postagem
+          
+        name: Executar Runner de Postagem
         env:
-          IG_ID: 17841462365629180
-          META_TOKEN: EAGn1D47P4mwBTJNoISyxoeQsd6IIWKgKuuT07X7G2LSIGTc4XIZBxHHZA2sNf18TPk53doPhWMmuK3V9UpbHvWKtt0QFuS1I4jHTcfAHQpJo37urrMXrzn3UOKfK0Bu5VZBpbCyZC9vbKj3rjJ8qkZBllNvj682RKvVVYkuMA7jdou2mUaE52alUiJgZBt
-          SUPABASE_URL: https://qbnfjhfhyxhzkbpykyis.supabase.co
-          SUPABASE_KEY: sb_publishable_rZ1pfEf_bRvs51m3tZIqlw_MMNm4cYg
-          SUPABASE_BUCKET: videos-reels
+          IG_ID: ${{ secrets.IG_ID }}
+          META_TOKEN: ${{ secrets.META_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          SUPABASE_BUCKET: ${{ secrets.SUPABASE_BUCKET }}
         run: python runner.py
 
       - name: Salvar e Enviar CSV Atualizado para o Repositório
