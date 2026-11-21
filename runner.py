@@ -1,0 +1,98 @@
+import os
+import sys
+import datetime
+import pandas as pd
+from meta_api import MetaPublisher
+from supabase_storage import SupabaseUploader
+
+CSV_FILE = os.getenv("CSV_FILE_PATH", "agendamento.csv")
+
+def run():
+    ig_id = os.getenv("17841462365629180")
+    token = os.getenv("EAGn1D47P4mwBTJNoISyxoeQsd6IIWKgKuuT07X7G2LSIGTc4XIZBxHHZA2sNf18TPk53doPhWMmuK3V9UpbHvWKtt0QFuS1I4jHTcfAHQpJo37urrMXrzn3UOKfK0Bu5VZBpbCyZC9vbKj3rjJ8qkZBllNvj682RKvVVYkuMA7jdou2mUaE52alUiJgZBt") or os.getenv("TOKEN")
+    supa_url = os.getenv("https://qbnfjhfhyxhzkbpykyis.supabase.co")
+    supa_key = os.getenv("sb_publishable_rZ1pfEf_bRvs51m3tZIqlw_MMNm4cYg")
+    supa_bucket = os.getenv("SUPABASE_BUCKET", "videos-reels")
+
+    if not ig_id or not token:
+        print("❌ Erro: Variáveis de ambiente IG_ID e META_TOKEN são obrigatórias.")
+        sys.exit(1)
+
+    if not os.path.exists(CSV_FILE):
+        print(f"⚠️ Arquivo CSV '{CSV_FILE}' não encontrado. Encerrando.")
+        return
+
+    # Lê o CSV de forma segura
+    try:
+        df = pd.read_csv(CSV_FILE, skipinitialspace=True)
+    except Exception:
+        df = pd.read_csv(CSV_FILE, skipinitialspace=True, engine='python')
+
+    if 'status' not in df.columns:
+        df['status'] = ''
+
+    df['status'] = df['status'].fillna('').astype(object)
+
+    publisher = MetaPublisher(ig_id, token)
+    uploader = None
+    if supa_url and supa_key:
+        uploader = SupabaseUploader(supa_url, supa_key, bucket_name=supa_bucket)
+
+    agora = datetime.datetime.now()
+    houve_postagem = False
+
+    print(f"🔍 Verificando agendamentos em {CSV_FILE} (Horário atual do servidor: {agora.strftime('%Y-%m-%d %H:%M:%S')})...")
+
+    for line_num, (idx, row) in enumerate(df.iterrows(), start=1):
+        status = str(row.get('status', '')).strip().upper()
+        if status in ['CONCLUIDO', 'CONCLUÍDO']:
+            continue
+
+        agendamento_str = str(row.get('agendamento_data_hora', '')).strip()
+        try:
+            data_agendada = datetime.datetime.strptime(agendamento_str, "%Y-%m-%d %H:%M")
+        except ValueError:
+            try:
+                data_agendada = datetime.datetime.strptime(agendamento_str, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                print(f"⚠️ Data inválida na linha {line_num} ('{agendamento_str}'). Ignorando.")
+                continue
+
+        # Verifica se o horário agendado já chegou ou passou
+        if agora >= data_agendada:
+            video_input = str(row['video_path']).strip()
+            titulo = str(row.get('titulo', '')).strip()
+            descricao = str(row.get('descricao', '')).strip()
+            link_compra = str(row.get('link_compra', '')).strip()
+            caption = f"{titulo}\n\n{descricao}\n\n🛒 Compre aqui: {link_compra}"
+
+            print(f"🚀 Horário atingido para a linha {line_num} (Agendado: {agendamento_str}). Publicando...")
+
+            try:
+                if video_input.startswith("http://") or video_input.startswith("https://"):
+                    video_url = video_input
+                else:
+                    if not uploader:
+                        raise ValueError("SupabaseUploader não configurado para vídeos locais.")
+                    print(f"📤 Upload do vídeo local para o Supabase: {video_input}")
+                    video_url = uploader.upload_local_video(video_input)
+
+                res = publisher.publicar_reels(video_url, caption)
+                print(f"✅ Sucesso! Post ID: {res.get('id')}")
+
+                df.at[idx, 'status'] = 'CONCLUIDO'
+                houve_postagem = True
+            except Exception as e:
+                print(f"❌ Erro ao publicar linha {line_num}: {e}")
+        else:
+            diferenca_min = int((data_agendada - agora).total_seconds() / 60)
+            print(f"⏳ Linha {line_num} agendada para {agendamento_str} (faltam {diferenca_min} min). Pulando.")
+
+    if houve_postagem:
+        df.to_csv(CSV_FILE, index=False)
+        print(f"💾 {CSV_FILE} atualizado com os novos status no repositório.")
+    else:
+        print("ℹ️ Nenhuma postagem pendente para o horário atual.")
+
+if __name__ == "__main__":
+    run()
