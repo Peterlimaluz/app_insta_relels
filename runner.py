@@ -12,6 +12,7 @@ def run():
     ig_id = os.getenv("IG_ID")
     # Lê META_TOKEN ou TOKEN para evitar divergência com o GitHub Secrets
     token = os.getenv("META_TOKEN") or os.getenv("TOKEN")
+    fb_page_id = os.getenv("FB_PAGE_ID")
     supa_url = os.getenv("SUPABASE_URL")
     supa_key = os.getenv("SUPABASE_KEY")
     supa_bucket = os.getenv("SUPABASE_BUCKET", "videos-reels")
@@ -40,7 +41,7 @@ def run():
 
     df['status'] = df['status'].astype(str).fillna('')
 
-    publisher = MetaPublisher(ig_id, token)
+    publisher = MetaPublisher(ig_id, token, facebook_page_id=fb_page_id)
     uploader = None
     if supa_url and supa_key:
         uploader = SupabaseUploader(supa_url, supa_key, bucket_name=supa_bucket)
