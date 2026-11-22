@@ -6,6 +6,7 @@ from meta_api import MetaPublisher
 from supabase_storage import SupabaseUploader
 
 CSV_FILE = os.getenv("CSV_FILE_PATH", "agendamento.csv")
+BRASILIA_TZ = datetime.timezone(datetime.timedelta(hours=-3))
 
 def run():
     ig_id = os.getenv("IG_ID")
@@ -44,7 +45,7 @@ def run():
     if supa_url and supa_key:
         uploader = SupabaseUploader(supa_url, supa_key, bucket_name=supa_bucket)
 
-    agora = datetime.datetime.now()
+    agora = datetime.datetime.now(BRASILIA_TZ)
     houve_postagem = False
 
     print(f"🔍 Verificando agendamentos em {CSV_FILE} (Horário atual do servidor: {agora.strftime('%Y-%m-%d %H:%M:%S')})...")
@@ -56,10 +57,14 @@ def run():
 
         agendamento_str = str(row.get('agendamento_data_hora', '')).strip()
         try:
-            data_agendada = datetime.datetime.strptime(agendamento_str, "%Y-%m-%d %H:%M")
+            data_agendada = datetime.datetime.strptime(
+                agendamento_str, "%Y-%m-%d %H:%M"
+            ).replace(tzinfo=BRASILIA_TZ)
         except ValueError:
             try:
-                data_agendada = datetime.datetime.strptime(agendamento_str, "%Y-%m-%d %H:%M:%S")
+                data_agendada = datetime.datetime.strptime(
+                    agendamento_str, "%Y-%m-%d %H:%M:%S"
+                ).replace(tzinfo=BRASILIA_TZ)
             except ValueError:
                 print(f"⚠️ Data inválida na linha {line_num} ('{agendamento_str}'). Ignorando.")
                 continue
