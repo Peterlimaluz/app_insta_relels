@@ -2,7 +2,7 @@ name: Agendador de Reels Automatico
 
 on:
   schedule:
-    - cron: '*/5 * * * *'  # Executa a cada 15 minutos em segundo plano
+    - cron: '*/15 * * * *'  # Executa a cada 15 minutos em segundo plano
   workflow_dispatch:        # Permite disparar manualmente pelo botão no GitHub
 
 permissions:
