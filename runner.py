@@ -8,10 +8,10 @@ from supabase_storage import SupabaseUploader
 CSV_FILE = os.getenv("CSV_FILE_PATH", "agendamento.csv")
 
 def run():
-    ig_id = os.getenv("17841462365629180")
-    token = os.getenv("EAGn1D47P4mwBTJNoISyxoeQsd6IIWKgKuuT07X7G2LSIGTc4XIZBxHHZA2sNf18TPk53doPhWMmuK3V9UpbHvWKtt0QFuS1I4jHTcfAHQpJo37urrMXrzn3UOKfK0Bu5VZBpbCyZC9vbKj3rjJ8qkZBllNvj682RKvVVYkuMA7jdou2mUaE52alUiJgZBt") or os.getenv("TOKEN")
-    supa_url = os.getenv("https://qbnfjhfhyxhzkbpykyis.supabase.co")
-    supa_key = os.getenv("sb_publishable_rZ1pfEf_bRvs51m3tZIqlw_MMNm4cYg")
+    ig_id = os.getenv("IG_ID")
+    token = os.getenv("TOKEN")
+    supa_url = os.getenv("SUPABASE_URL")
+    supa_key = os.getenv("SUPABASE_KEY")
     supa_bucket = os.getenv("SUPABASE_BUCKET", "videos-reels")
 
     if not ig_id or not token:
