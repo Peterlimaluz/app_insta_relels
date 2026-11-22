@@ -9,13 +9,19 @@ CSV_FILE = os.getenv("CSV_FILE_PATH", "agendamento.csv")
 
 def run():
     ig_id = os.getenv("IG_ID")
-    token = os.getenv("TOKEN")
+    # Lê META_TOKEN ou TOKEN para evitar divergência com o GitHub Secrets
+    token = os.getenv("META_TOKEN") or os.getenv("TOKEN")
     supa_url = os.getenv("SUPABASE_URL")
     supa_key = os.getenv("SUPABASE_KEY")
     supa_bucket = os.getenv("SUPABASE_BUCKET", "videos-reels")
 
+    # Diagnóstico explícito para o log de QA
+    if not ig_id:
+        print("❌ Erro: Variável de ambiente IG_ID não foi encontrada.")
+    if not token:
+        print("❌ Erro: Variável de ambiente META_TOKEN/TOKEN não foi encontrada.")
+
     if not ig_id or not token:
-        print("❌ Erro: Variáveis de ambiente IG_ID e META_TOKEN são obrigatórias.")
         sys.exit(1)
 
     if not os.path.exists(CSV_FILE):
@@ -66,7 +72,7 @@ def run():
             link_compra = str(row.get('link_compra', '')).strip()
             caption = f"{titulo}\n\n{descricao}\n\n🛒 Compre aqui: {link_compra}"
 
-            print(f"🚀 Horário atingido para a linha {line_num} (Agendado: {agendamento_str}). Publicando...")
+            print(f"🚀 Horário atingido para o item da linha {line_num} (Agendado: {agendamento_str}). Publicando...")
 
             try:
                 if video_input.startswith("http://") or video_input.startswith("https://"):
@@ -83,10 +89,10 @@ def run():
                 df.at[idx, 'status'] = 'CONCLUIDO'
                 houve_postagem = True
             except Exception as e:
-                print(f"❌ Erro ao publicar linha {line_num}: {e}")
+                print(f"❌ Erro ao publicar item {line_num}: {e}")
         else:
             diferenca_min = int((data_agendada - agora).total_seconds() / 60)
-            print(f"⏳ Linha {line_num} agendada para {agendamento_str} (faltam {diferenca_min} min). Pulando.")
+            print(f"⏳ Item {line_num} agendado para {agendamento_str} (faltam {diferenca_min} min). Pulando.")
 
     if houve_postagem:
         df.to_csv(CSV_FILE, index=False)
