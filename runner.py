@@ -37,7 +37,7 @@ def run():
     if 'status' not in df.columns:
         df['status'] = ''
 
-    df['status'] = df['status'].fillna('').astype(object)
+    df['status'] = df['status'].astype(str).fillna('')
 
     publisher = MetaPublisher(ig_id, token)
     uploader = None
