@@ -76,7 +76,18 @@ def run():
             titulo = str(row.get('titulo', '')).strip()
             descricao = str(row.get('descricao', '')).strip()
             link_compra = str(row.get('link_compra', '')).strip()
-            caption = f"{titulo}\n\n{descricao}\n\n🛒 Compre aqui: {link_compra}"
+
+            # Montagem unificada da legenda para todas as redes sociais com a mensagem de urgência
+            aviso_urgencia = (
+                "⚠️ ATENÇÃO: Após clicar no link, efetue a compra antes das 24h, "
+                "pois os preços mudam repentinamente! ⏳🚨"
+            )
+            
+            bloco_link = ""
+            if link_compra:
+                bloco_link = f"\n\n🛒 Compre aqui: {link_compra}\n{aviso_urgencia}"
+
+            caption = f"{titulo}\n\n{descricao}{bloco_link}\n\n⚡ Oferta por tempo limitado! Aproveite antes que acabe o estoque."
 
             print(f"🚀 Horário atingido para o item da linha {line_num} (Agendado: {agendamento_str}). Publicando...")
 
@@ -100,11 +111,11 @@ def run():
                     else:
                         raise FileNotFoundError(f"Arquivo local '{video_input}' não encontrado no servidor.")
 
-                # 2. Publicação na Meta (Instagram Reels e Facebook Page)
+                # 2. Publicação na Meta (Instagram Reels e Página do Facebook)
                 res = publisher.publicar_reels(video_url, caption)
                 print(f"✅ Sucesso na Meta! Post ID: {res.get('id')}")
 
-                # 3. Publicação no YouTube Shorts
+                # 3. Publicação no YouTube Shorts (vídeo + comentário com link e aviso)
                 if caminho_local_yt and os.path.exists(caminho_local_yt):
                     print(f"🎬 Enviando para o YouTube Shorts: {caminho_local_yt}")
                     sucesso_yt = yt_publisher.postar_shorts(
