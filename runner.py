@@ -4,6 +4,7 @@ import datetime
 import pandas as pd
 from meta_api import MetaPublisher
 from supabase_storage import SupabaseUploader
+from youtube_uploader import YouTubeShortsPublisher
 
 CSV_FILE = os.getenv("CSV_FILE_PATH", "agendamento.csv")
 BRASILIA_TZ = datetime.timezone(datetime.timedelta(hours=-3))
@@ -43,6 +44,7 @@ def run():
 
     publisher = MetaPublisher(ig_id, token, facebook_page_id=fb_page_id)
     uploader = None
+    yt_publisher = YouTubeShortsPublisher()
     if supa_url and supa_key:
         uploader = SupabaseUploader(supa_url, supa_key, bucket_name=supa_bucket)
 
@@ -81,16 +83,36 @@ def run():
             print(f"🚀 Horário atingido para o item da linha {line_num} (Agendado: {agendamento_str}). Publicando...")
 
             try:
+                # 1. Tratamento para o Instagram / Meta (Requer URL pública)
                 if video_input.startswith("http://") or video_input.startswith("https://"):
                     video_url = video_input
+                    caminho_local_yt = None
                 else:
                     if not uploader:
                         raise ValueError("SupabaseUploader não configurado para vídeos locais.")
                     print(f"📤 Upload do vídeo local para o Supabase: {video_input}")
                     video_url = uploader.upload_local_video(video_input)
+                    caminho_local_yt = video_input
 
+                # 2. Publicação na Meta (Instagram e Facebook Page)
                 res = publisher.publicar_reels(video_url, caption)
-                print(f"✅ Sucesso! Post ID: {res.get('id')}")
+                print(f"✅ Sucesso na Meta! Post ID: {res.get('id')}")
+
+                # 3. Publicação no YouTube Shorts
+                if caminho_local_yt and os.path.exists(caminho_local_yt):
+                    print(f"🎬 Enviando para o YouTube Shorts: {caminho_local_yt}")
+                    sucesso_yt = yt_publisher.postar_shorts(
+                        caminho_video_local=caminho_local_yt,
+                        titulo=titulo if titulo else "Oferta Imperdível",
+                        descricao=caption,
+                        logger=print
+                    )
+                    if sucesso_yt:
+                        print("✅ Sucesso no YouTube Shorts!")
+                    else:
+                        print("⚠️ Falha ao publicar no YouTube Shorts.")
+                else:
+                    print("⚠️ Vídeo local não encontrado para envio direto ao YouTube Shorts.")
 
                 df.at[idx, 'status'] = 'CONCLUIDO'
                 houve_postagem = True
