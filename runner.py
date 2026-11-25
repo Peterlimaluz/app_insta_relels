@@ -110,7 +110,7 @@ def run():
                     sucesso_yt = yt_publisher.postar_shorts(
                         caminho_video_local=caminho_local_yt,
                         titulo=titulo if titulo else "Oferta Imperdível",
-                        descricao=descricao,
+                        descricao=caption,
                         link_compra=link_compra,
                         logger=print
                     )
