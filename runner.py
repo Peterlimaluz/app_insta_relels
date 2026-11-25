@@ -83,16 +83,26 @@ def run():
             print(f"🚀 Horário atingido para o item da linha {line_num} (Agendado: {agendamento_str}). Publicando...")
 
             try:
-                # 1. Tratamento para o Instagram / Meta (Requer URL pública)
+                caminho_local_yt = None
+
+                # 1. Tratamento para obter URL e arquivo local no GitHub Actions
                 if video_input.startswith("http://") or video_input.startswith("https://"):
                     video_url = video_input
-                    caminho_local_yt = None
+                    # Baixa temporariamente para enviar ao YouTube
+                    import urllib.request
+                    caminho_temp = f"temp_video_{idx}.mp4"
+                    print(f"📥 Baixando vídeo da URL para envio ao YouTube Shorts...")
+                    urllib.request.urlretrieve(video_url, caminho_temp)
+                    caminho_local_yt = caminho_temp
                 else:
-                    if not uploader:
-                        raise ValueError("SupabaseUploader não configurado para vídeos locais.")
-                    print(f"📤 Upload do vídeo local para o Supabase: {video_input}")
-                    video_url = uploader.upload_local_video(video_input)
-                    caminho_local_yt = video_input
+                    if os.path.exists(video_input):
+                        caminho_local_yt = video_input
+                        if not uploader:
+                            raise ValueError("SupabaseUploader não configurado para vídeos locais.")
+                        print(f"📤 Upload do vídeo local para o Supabase: {video_input}")
+                        video_url = uploader.upload_local_video(video_input)
+                    else:
+                        raise FileNotFoundError(f"Arquivo local '{video_input}' não encontrado no servidor.")
 
                 # 2. Publicação na Meta (Instagram e Facebook Page)
                 res = publisher.publicar_reels(video_url, caption)
@@ -111,6 +121,10 @@ def run():
                         print("✅ Sucesso no YouTube Shorts!")
                     else:
                         print("⚠️ Falha ao publicar no YouTube Shorts.")
+
+                    # Limpa o arquivo temporário se foi baixado
+                    if caminho_local_yt.startswith("temp_video_") and os.path.exists(caminho_local_yt):
+                        os.remove(caminho_local_yt)
                 else:
                     print("⚠️ Vídeo local não encontrado para envio direto ao YouTube Shorts.")
 
