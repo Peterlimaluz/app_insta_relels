@@ -33,25 +33,40 @@ class YouTubeShortsPublisher:
 
         return build("youtube", "v3", credentials=creds)
 
-    def postar_shorts(self, caminho_video_local: str, titulo: str, descricao: str, tags: Optional[list] = None, logger=print) -> bool:
+    def postar_shorts(
+        self, 
+        caminho_video_local: str, 
+        titulo: str, 
+        descricao: str, 
+        link_compra: Optional[str] = None, 
+        tags: Optional[list] = None, 
+        logger=print
+    ) -> bool:
         try:
             logger("  [YouTube] Preparando metadados do Shorts...")
             
-            # Garantir a tag #Shorts para classificação imediata
             titulo_final = f"{titulo[:90]} #Shorts"
-            descricao_final = f"{descricao}\n\n#Shorts"
-            tags_finais = tags or ["Shorts", "Ofertas", "Amazon"]
+            
+            aviso_afiliado = (
+                "\n\nAviso de Transparência: Este link é de afiliado. Podemos receber uma comissão "
+                "pela compra sem nenhum custo extra para você.\n\n#Shorts #Ofertas #Achadinhos"
+            )
+            
+            if link_compra:
+                descricao_final = f"{descricao}\n\n🛒 Link do Produto: {link_compra}{aviso_afiliado}"
+            else:
+                descricao_final = f"{descricao}{aviso_afiliado}"
 
             body = {
-                "snippet": {
-                    "title": titulo_final,
-                    "description": descricao_final,
-                    "tags": tags_finais,
-                    "categoryId": "22" # Pessoas e blogs
+                'snippet': {
+                    'title': titulo_final,
+                    'description': descricao_final,
+                    'tags': tags or ['Shorts', 'Achadinhos', 'Ofertas', 'Review'],
+                    'categoryId': '22'  # 22 = People & Blogs
                 },
-                "status": {
-                    "privacyStatus": "public",
-                    "selfDeclaredMadeForKids": False
+                'status': {
+                    'privacyStatus': 'public',
+                    'selfDeclaredMadeForKids': False
                 }
             }
 

@@ -1,6 +1,7 @@
 import os
 import sys
 import datetime
+import urllib.request
 import pandas as pd
 from meta_api import MetaPublisher
 from supabase_storage import SupabaseUploader
@@ -11,14 +12,12 @@ BRASILIA_TZ = datetime.timezone(datetime.timedelta(hours=-3))
 
 def run():
     ig_id = os.getenv("IG_ID")
-    # Lê META_TOKEN ou TOKEN para evitar divergência com o GitHub Secrets
     token = os.getenv("META_TOKEN") or os.getenv("TOKEN")
     fb_page_id = os.getenv("FB_PAGE_ID")
     supa_url = os.getenv("SUPABASE_URL")
     supa_key = os.getenv("SUPABASE_KEY")
     supa_bucket = os.getenv("SUPABASE_BUCKET", "videos-reels")
 
-    # Diagnóstico explícito para o log de QA
     if not ig_id:
         print("❌ Erro: Variável de ambiente IG_ID não foi encontrada.")
     if not token:
@@ -31,7 +30,6 @@ def run():
         print(f"⚠️ Arquivo CSV '{CSV_FILE}' não encontrado. Encerrando.")
         return
 
-    # Lê o CSV de forma segura
     try:
         df = pd.read_csv(CSV_FILE, skipinitialspace=True)
     except Exception:
@@ -45,6 +43,7 @@ def run():
     publisher = MetaPublisher(ig_id, token, facebook_page_id=fb_page_id)
     uploader = None
     yt_publisher = YouTubeShortsPublisher()
+
     if supa_url and supa_key:
         uploader = SupabaseUploader(supa_url, supa_key, bucket_name=supa_bucket)
 
@@ -72,7 +71,6 @@ def run():
                 print(f"⚠️ Data inválida na linha {line_num} ('{agendamento_str}'). Ignorando.")
                 continue
 
-        # Verifica se o horário agendado já chegou ou passou
         if agora >= data_agendada:
             video_input = str(row['video_path']).strip()
             titulo = str(row.get('titulo', '')).strip()
@@ -85,13 +83,11 @@ def run():
             try:
                 caminho_local_yt = None
 
-                # 1. Tratamento para obter URL e arquivo local no GitHub Actions
+                # 1. Obter URL pública para a Meta e arquivo local para o YouTube Shorts
                 if video_input.startswith("http://") or video_input.startswith("https://"):
                     video_url = video_input
-                    # Baixa temporariamente para enviar ao YouTube
-                    import urllib.request
                     caminho_temp = f"temp_video_{idx}.mp4"
-                    print(f"📥 Baixando vídeo da URL para envio ao YouTube Shorts...")
+                    print("📥 Baixando vídeo da URL para envio ao YouTube Shorts...")
                     urllib.request.urlretrieve(video_url, caminho_temp)
                     caminho_local_yt = caminho_temp
                 else:
@@ -104,7 +100,7 @@ def run():
                     else:
                         raise FileNotFoundError(f"Arquivo local '{video_input}' não encontrado no servidor.")
 
-                # 2. Publicação na Meta (Instagram e Facebook Page)
+                # 2. Publicação na Meta (Instagram Reels e Facebook Page)
                 res = publisher.publicar_reels(video_url, caption)
                 print(f"✅ Sucesso na Meta! Post ID: {res.get('id')}")
 
@@ -114,7 +110,8 @@ def run():
                     sucesso_yt = yt_publisher.postar_shorts(
                         caminho_video_local=caminho_local_yt,
                         titulo=titulo if titulo else "Oferta Imperdível",
-                        descricao=caption,
+                        descricao=descricao,
+                        link_compra=link_compra,
                         logger=print
                     )
                     if sucesso_yt:
@@ -122,7 +119,6 @@ def run():
                     else:
                         print("⚠️ Falha ao publicar no YouTube Shorts.")
 
-                    # Limpa o arquivo temporário se foi baixado
                     if caminho_local_yt.startswith("temp_video_") and os.path.exists(caminho_local_yt):
                         os.remove(caminho_local_yt)
                 else:
