@@ -53,7 +53,9 @@ class MetaPublisher:
         if not self.fb_page_id:
             return None
 
-        fb_url = f"{self.base_url}/{self.fb_page_id}/videos"
+        # Se o token já é da Página, 'me/videos' publica de forma direta e segura
+        alvo = self.fb_page_id if self.fb_page_id != "122315092208059749" else "me"
+        fb_url = f"{self.base_url}/{alvo}/videos"
         payload = {
             'file_url': video_url,
             'description': caption,
