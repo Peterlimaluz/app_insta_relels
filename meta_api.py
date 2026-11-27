@@ -3,10 +3,18 @@ import requests
 from typing import Optional
 
 class MetaPublisher:
-    def __init__(self, instagram_account_id: str, access_token: str, facebook_page_id: Optional[str] = None):
+    def __init__(
+        self, 
+        instagram_account_id: str, 
+        access_token: str, 
+        facebook_page_id: Optional[str] = None,
+        facebook_page_token: Optional[str] = None
+    ):
         self.ig_id = instagram_account_id
         self.fb_page_id = facebook_page_id
         self.token = access_token
+        # Usa o token dedicado da Página para o Facebook; se não houver, usa o token principal
+        self.fb_token = facebook_page_token or access_token
         self.base_url = "https://graph.facebook.com/v18.0"
 
     def publicar_reels_instagram(self, video_url: str, caption: str) -> str:
@@ -53,13 +61,12 @@ class MetaPublisher:
         if not self.fb_page_id:
             return None
 
-        # Se o token já é da Página, 'me/videos' publica de forma direta e segura
-        alvo = self.fb_page_id if self.fb_page_id != "122315092208059749" else "me"
-        fb_url = f"{self.base_url}/{alvo}/videos"
+        # Garante o envio para o endpoint de vídeos da Página com o token dedicado
+        fb_url = f"{self.base_url}/{self.fb_page_id}/videos"
         payload = {
             'file_url': video_url,
             'description': caption,
-            'access_token': self.token
+            'access_token': self.fb_token
         }
         res = requests.post(fb_url, data=payload).json()
         if 'id' not in res:
@@ -68,14 +75,14 @@ class MetaPublisher:
         return res['id']
 
     def publicar_reels(self, video_url: str, caption: str) -> dict:
-        """Executa a publicação no Instagram e, se o FB_PAGE_ID estiver presente, também no Facebook."""
+        """Executa a publicação no Instagram e na Página do Facebook."""
         resultados = {}
 
-        # 1. Publica no Instagram
+        # 1. Instagram
         ig_post_id = self.publicar_reels_instagram(video_url, caption)
         resultados['instagram'] = ig_post_id
 
-        # 2. Publica no Facebook (opcional / se configurado)
+        # 2. Facebook
         if self.fb_page_id:
             try:
                 fb_post_id = self.publicar_facebook_pagina(video_url, caption)
