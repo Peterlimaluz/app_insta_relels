@@ -57,10 +57,13 @@ class MetaPublisher:
         return pub_res['id']
 
     def publicar_facebook_pagina(self, video_url: str, caption: str) -> str | None:
-        if not self.fb_page_id:
+        """Publica o vídeo/Reels na Página do Facebook usando o Page Token."""
+        if not self.fb_page_id and not self.fb_token:
             return None
 
-        fb_url = f"{self.base_url}/{self.fb_page_id}/videos"
+        # Usar 'me/videos' garante que a publicação vá direto para a Página dona do Page Token,
+        # evitando o erro (#100) caso haja divergência no FB_PAGE_ID
+        fb_url = f"{self.base_url}/me/videos"
         payload = {
             'file_url': video_url,
             'description': caption,

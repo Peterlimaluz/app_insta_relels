@@ -118,6 +118,13 @@ def run():
                     else:
                         raise FileNotFoundError(f"Arquivo local '{video_input}' não encontrado no servidor.")
 
+                # Diagnóstico de tokens da Meta
+                print(f"📡 Postando no Instagram (ID: {ig_id})...")
+                if fb_page_token:
+                    print(f"📡 Postando no Facebook Page com token dedicado (Prefixo: {fb_page_token[:15]}...)")
+                else:
+                    print("⚠️ Alerta: FB_PAGE_TOKEN está vazio ou não foi lido do ambiente!")
+
                 # 2. Publicação na Meta (Instagram Reels e Página do Facebook)
                 res = publisher.publicar_reels(video_url, caption)
                 print(f"✅ Sucesso na Meta! Post ID: {res.get('id')}")
