@@ -14,6 +14,7 @@ def run():
     ig_id = os.getenv("IG_ID")
     token = os.getenv("META_TOKEN") or os.getenv("TOKEN")
     fb_page_id = os.getenv("FB_PAGE_ID")
+    fb_page_token = os.getenv("FB_PAGE_TOKEN")  # <--- Lê o token da Página
     supa_url = os.getenv("SUPABASE_URL")
     supa_key = os.getenv("SUPABASE_KEY")
     supa_bucket = os.getenv("SUPABASE_BUCKET", "videos-reels")
@@ -40,7 +41,13 @@ def run():
 
     df['status'] = df['status'].astype(str).fillna('')
 
-    publisher = MetaPublisher(ig_id, token, facebook_page_id=fb_page_id)
+    # Inicializa o publisher passando o token específico da Página
+    publisher = MetaPublisher(
+        instagram_account_id=ig_id, 
+        access_token=token, 
+        facebook_page_id=fb_page_id,
+        facebook_page_token=fb_page_token
+    )
     uploader = None
     yt_publisher = YouTubeShortsPublisher()
 
