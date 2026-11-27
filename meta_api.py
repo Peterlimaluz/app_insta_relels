@@ -57,23 +57,49 @@ class MetaPublisher:
         return pub_res['id']
 
     def publicar_facebook_pagina(self, video_url: str, caption: str) -> str | None:
-        """Publica o vídeo/Reels na Página do Facebook usando o Page Token."""
+        """Publica o vídeo especificamente no Facebook Reels da Página."""
         if not self.fb_page_id and not self.fb_token:
             return None
 
-        # Usar 'me/videos' garante que a publicação vá direto para a Página dona do Page Token,
-        # evitando o erro (#100) caso haja divergência no FB_PAGE_ID
-        fb_url = f"{self.base_url}/me/videos"
-        payload = {
-            'file_url': video_url,
+        # 1. Iniciar a sessão de upload de Reels na Página
+        init_url = f"{self.base_url}/me/video_reels"
+        init_payload = {
+            'upload_phase': 'start',
+            'access_token': self.fb_token
+        }
+        init_res = requests.post(init_url, data=init_payload).json()
+        
+        if 'video_id' not in init_res:
+            raise Exception(f"[Facebook Reels] Erro ao iniciar sessão: {init_res}")
+
+        video_id = init_res['video_id']
+
+        # 2. Fazer o envio do arquivo do vídeo via file_url para o nó do vídeo
+        upload_url = f"https://rupload.facebook.com/video-upload/v18.0/{video_id}"
+        upload_headers = {
+            'Authorization': f'OAuth {self.fb_token}',
+            'file_url': video_url
+        }
+        upload_res = requests.post(upload_url, headers=upload_headers).json()
+        
+        if not upload_res.get('success', False) and 'id' not in upload_res:
+            raise Exception(f"[Facebook Reels] Erro no envio do vídeo: {upload_res}")
+
+        # 3. Publicar o Reels no feed de Reels da Página
+        publish_url = f"{self.base_url}/me/video_reels"
+        publish_payload = {
+            'upload_phase': 'finish',
+            'video_id': video_id,
+            'video_state': 'PUBLISHED',
             'description': caption,
             'access_token': self.fb_token
         }
-        res = requests.post(fb_url, data=payload).json()
-        if 'id' not in res:
-            raise Exception(f"[Facebook] Erro ao publicar na Página: {res}")
+        pub_res = requests.post(publish_url, data=publish_payload).json()
+        
+        if not pub_res.get('success', False):
+            raise Exception(f"[Facebook Reels] Erro ao concluir publicação: {pub_res}")
 
-        return res['id']
+        return video_id
 
     def publicar_reels(self, video_url: str, caption: str) -> dict:
         """Executa a publicação no Instagram e na Página do Facebook."""
